@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">부스 도장판</title>
+<style>
+  :root{
+    --bg1:#fff6e5;
+    --bg2:#ffe9d6;
+    --accent:#ff7a45;
+    --accent-dark:#e35d2b;
+    --ink:#3a2a1e;
+    --card:#ffffff;
+    --stamp-red:#d92d20;
+    --muted:#9b8b7a;
+    --line:#f0ddc9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .screen{
+    width:100%;
+    max-width:520px;
+  }
+  .card{
+    background:var(--card);
+    border-radius:24px;
+    box-shadow:0 12px 30px rgba(180,120,60,0.18);
+    padding:32px 28px;
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";
+    position:absolute;
+    top:-60px;right:-60px;
+    width:160px;height:160px;
+    background:radial-gradient(circle,rgba(255,122,69,0.15),transparent 70%);
+  }
+  h1{
+    font-size:26px;
+    margin:0 0 4px;
+    text-align:center;
+    color:var(--accent-dark);
+    word-break:keep-all;
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--muted);
+    font-size:14px;
+    margin-bottom:24px;
+  }
+  .field-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .field{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .field label{
+    font-size:13px;
+    color:var(--muted);
+    font-weight:600;
+  }
+  input[type=number], input[type=text], input[type=password]{
+    border:2px solid var(--line);
+    border-radius:12px;
+    padding:12px 10px;
+    font-size:17px;
+    text-align:center;
+    outline:none;
+    transition:border-color .15s;
+    width:100%;
+    font-family:inherit;
+  }
+  input[type=text]{text-align:left;}
+  input:focus{border-color:var(--accent);}
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+  }
+  .btn-primary{
+    width:100%;
+    padding:14px;
+    background:var(--accent);
+    color:#fff;
+    font-size:17px;
+    font-weight:700;
+    border-radius:14px;
+    margin-top:8px;
+    transition:background .15s, transform .1s;
+  }
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-primary:active{transform:scale(0.98);}
+  .btn-secondary{
+    width:100%;
+    padding:11px;
+    background:transparent;
+    color:var(--muted);
+    font-size:14px;
+    border-radius:12px;
+    margin-top:10px;
+    text-decoration:underline;
+  }
+  .error-msg{
+    color:var(--stamp-red);
+    font-size:13px;
+    text-align:center;
+    min-height:18px;
+    margin-top:4px;
+  }
+  .top-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
+  }
+  .user-chip{
+    background:var(--bg1);
+    border-radius:20px;
+    padding:6px 14px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--accent-dark);
+  }
+  .icon-btn{
+    background:var(--bg1);
+    border-radius:12px;
+    padding:8px 12px;
+    font-size:13px;
+    color:var(--muted);
+    font-weight:600;
+  }
+  .progress-wrap{
+    margin-bottom:20px;
+  }
+  .progress-label{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:6px;
+    font-weight:600;
+  }
+  .progress-bar{
+    height:12px;
+    background:var(--bg1);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--accent),#ffb37a);
+    border-radius:8px;
+    transition:width .3s ease;
+  }
+  .stamp-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-bottom:8px;
+  }
+  .stamp-slot{
+    aspect-ratio:1;
+    border-radius:16px;
+    border:2px dashed var(--line);
+    background:var(--bg1);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    font-weight:700;
+    color:var(--muted);
+    font-size:13px;
+    gap:4px;
+    transition:transform .1s;
+  }
+  .stamp-slot:active{transform:scale(0.95);}
+  .stamp-slot .num{
+    font-size:12px;
+    opacity:0.8;
+    position:absolute;
+    top:8px;
+    left:4px;
+    right:4px;
+    text-align:center;
+    z-index:1;
+  }
+  .stamp-slot.stamped{
+    border-style:solid;
+    border-color:var(--stamp-red);
+    background:#fff;
+  }
+  .stamp-mark{
+    position:absolute;
+    top:22px;
+    left:6px;
+    right:6px;
+    bottom:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .stamp-mark .ring{
+    width:82%;
+    height:82%;
+    border:3px solid var(--stamp-red);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--stamp-red);
+    font-size:12px;
+    font-weight:900;
+    transform:rotate(-14deg);
+    text-align:center;
+    line-height:1.2;
+    opacity:0.9;
+    animation:stampIn .25s ease;
+  }
+  @keyframes stampIn{
+    0%{transform:rotate(-14deg) scale(1.8);opacity:0;}
+    60%{transform:rotate(-14deg) scale(0.9);opacity:1;}
+    100%{transform:rotate(-14deg) scale(1);opacity:0.9;}
+  }
+  .complete-banner{
+    text-align:center;
+    background:linear-gradient(120deg,#fff1e0,#ffe0c2);
+    border-radius:16px;
+    padding:16px;
+    margin:16px 0;
+    font-weight:700;
+    color:var(--accent-dark);
+    font-size:15px;
+  }
+  .footer-link{
+    text-align:center;
+    margin-top:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+  .footer-link button{
+    background:none;
+    color:var(--muted);
+    font-size:12px;
+    text-decoration:underline;
+  }
+  .footer-sep{
+    color:var(--line);
+    font-size:12px;
+  }
+  .admin-section{
+    margin-bottom:18px;
+  }
+  .admin-section h2{
+    font-size:15px;
+    color:var(--accent-dark);
+    margin:0 0 10px;
+  }
+  .admin-row{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin-bottom:10px;
+  }
+  .admin-row label{
+    flex:1;
+    font-size:14px;
+    color:var(--ink);
+    font-weight:600;
+  }
+  .admin-row input{
+    flex:1;
+  }
+  .divider{
+    height:1px;
+    background:var(--line);
+    margin:18px 0;
+  }
+  .hidden{display:none !important;}
+  .save-msg{
+    text-align:center;
+    font-size:13px;
+    color:#2f9e44;
+    min-height:18px;
+    font-weight:700;
+  }
+  textarea{
+    border:2px solid var(--line);
+    border-radius:12px;
+    padding:12px 10px;
+    font-size:15px;
+    outline:none;
+    width:100%;
+    font-family:inherit;
+    resize:vertical;
+    transition:border-color .15s;
+  }
+  textarea:focus{border-color:var(--accent);}
+  .field-hint{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:4px;
+  }
+  .admin-name-list{
+    max-height:260px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    padding-right:4px;
+    margin-top:2px;
+  }
+  .admin-name-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .admin-name-row .idx{
+    width:48px;
+    font-size:12px;
+    color:var(--muted);
+    font-weight:700;
+    flex-shrink:0;
+  }
+  .admin-name-row input{
+    flex:1;
+  }
+  .popup-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(58,42,30,0.55);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    z-index:50;
+  }
+  .popup-card{
+    background:#fff;
+    border-radius:20px;
+    padding:32px 26px;
+    max-width:360px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,0.25);
+    animation:popupIn .25s ease;
+  }
+  .popup-emoji{
+    font-size:48px;
+    margin-bottom:12px;
+  }
+  .popup-message{
+    font-size:16px;
+    font-weight:700;
+    color:var(--accent-dark);
+    line-height:1.5;
+    margin-bottom:22px;
+    white-space:pre-line;
+    word-break:keep-all;
+  }
+  @keyframes popupIn{
+    0%{transform:scale(0.8);opacity:0;}
+    100%{transform:scale(1);opacity:1;}
+  }
+  .btn-switch{
+    width:100%;
+    padding:16px;
+    background:#fff;
+    color:var(--accent-dark);
+    font-size:16px;
+    font-weight:700;
+    border-radius:14px;
+    margin-top:14px;
+    border:2px solid var(--accent);
+    transition:background .15s, transform .1s;
+  }
+  .btn-switch:hover{background:var(--bg1);}
+  .btn-switch:active{transform:scale(0.98);}
+  .popup-card .btn-switch{margin-top:10px;}
+  .save-toast{
+    position:fixed;
+    left:50%;
+    bottom:28px;
+    transform:translateX(-50%);
+    background:var(--ink);
+    color:#fff;
+    padding:12px 22px;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:700;
+    box-shadow:0 8px 20px rgba(0,0,0,0.25);
+    z-index:60;
+    opacity:0.95;
+    animation:toastIn .18s ease;
+  }
+  @keyframes toastIn{
+    0%{transform:translateX(-50%) translateY(10px);opacity:0;}
+    100%{transform:translateX(-50%) translateY(0);opacity:0.95;}
+  }
+  .status-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    max-height:420px;
+    overflow-y:auto;
+    margin-top:14px;
+    padding-right:4px;
+  }
+  .status-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 16px;
+    background:var(--bg1);
+    border-radius:14px;
+    font-weight:700;
+    color:var(--ink);
+    font-size:15px;
+  }
+  .status-row.clickable{
+    cursor:pointer;
+    transition:background .15s;
+  }
+  .status-row.clickable:hover{background:#ffe4c9;}
+  .status-row .meta{
+    font-size:13px;
+    color:var(--muted);
+    font-weight:600;
+  }
+  .status-row.complete{
+    border:2px solid var(--stamp-red);
+    background:#fff;
+  }
+  .status-row.complete .meta{
+    color:var(--stamp-red);
+  }
+  .status-empty{
+    text-align:center;
+    color:var(--muted);
+    font-size:14px;
+    margin-top:24px;
+  }
+  .btn-danger{
+    width:100%;
+    padding:13px;
+    background:#fff;
+    color:var(--stamp-red);
+    font-size:14px;
+    font-weight:700;
+    border-radius:14px;
+    border:2px solid var(--stamp-red);
+    transition:background .15s, transform .1s;
+  }
+  .btn-danger:hover{background:#fff0ee;}
+  .btn-danger:active{transform:scale(0.98);}
+</style>
+</head>
+<body>
+
+<div class="screen">
+
+  <!-- 학생 로그인 화면 -->
+  <div id="loginScreen" class="card">
+    <h1 id="loginTitle">부스 도장판</h1>
+    <div class="subtitle">학년, 반, 번호를 입력하고 도장판을 시작하세요</div>
+    <div class="field-row">
+      <div class="field">
+        <label>학년</label>
+        <input type="number" id="inGrade" min="1" max="9" placeholder="예:3">
+      </div>
+      <div class="field">
+        <label>반</label>
+        <input type="number" id="inClass" min="1" max="20" placeholder="예:2">
+      </div>
+      <div class="field">
+        <label>번호</label>
+        <input type="number" id="inNumber" min="1" max="50" placeholder="예:15">
+      </div>
+    </div>
+    <div class="error-msg" id="loginError"></div>
+    <button class="btn-primary" id="loginBtn">도장판 열기</button>
+    <div class="footer-link">
+      <button id="openAdminFromLogin">관리자 모드</button>
+      <span class="footer-sep">|</span>
+      <button id="openStatusFromLogin">도장판 현황보기</button>
+    </div>
+  </div>
+
+  <!-- 도장판 화면 -->
+  <div id="boardScreen" class="card hidden">
+    <div class="top-bar">
+      <div class="user-chip" id="userChip"></div>
+      <button class="icon-btn" id="switchUserBtn">다른 학생으로</button>
+    </div>
+    <h1 id="boardTitle">부스 도장판</h1>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>모은 도장</span>
+        <span id="progressText">0 / 0</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+    <div id="completeBanner" class="complete-banner hidden">🎉 모든 부스 도장을 다 모았어요! 축하합니다!</div>
+    <div class="stamp-grid" id="stampGrid"></div>
+    <button class="btn-switch" id="switchUserBtnBig">다음 학생으로 넘어가기</button>
+    <div class="footer-link">
+      <button id="openAdminFromBoard">관리자 모드</button>
+      <span class="footer-sep">|</span>
+      <button id="openStatusFromBoard">도장판 현황보기</button>
+    </div>
+  </div>
+
+  <!-- 관리자 비밀번호 화면 -->
+  <div id="adminAuthScreen" class="card hidden">
+    <h1 id="adminAuthTitle">관리자 로그인</h1>
+    <div class="subtitle">관리자 비밀번호를 입력하세요</div>
+    <div class="field">
+      <input type="password" id="adminPw" placeholder="비밀번호">
+    </div>
+    <div class="error-msg" id="adminAuthError"></div>
+    <button class="btn-primary" id="adminLoginBtn">확인</button>
+    <button class="btn-secondary" id="backFromAdminAuth">뒤로 가기</button>
+  </div>
+
+  <!-- 관리자 설정 화면 -->
+  <div id="adminScreen" class="card hidden">
+    <h1>관리자 설정</h1>
+    <div class="admin-section">
+      <h2>도장판 이름</h2>
+      <div class="admin-row">
+        <input type="text" id="adminTitleInput" maxlength="30" placeholder="예: 가을 축제 부스 도장판">
+      </div>
+    </div>
+    <div class="admin-section">
+      <h2>부스 개수</h2>
+      <div class="admin-row">
+        <input type="number" id="adminBoothCount" min="1" max="60">
+      </div>
+    </div>
+    <div class="admin-section">
+      <h2>부스 이름</h2>
+      <div class="admin-name-list" id="adminBoothNames"></div>
+    </div>
+    <div class="admin-section">
+      <h2>완료 팝업 문구</h2>
+      <div class="admin-row">
+        <textarea id="adminCompletionMsg" rows="2" maxlength="80" placeholder="예: 모든 부스 도장을 다 모았어요! 동여머니 2개가 적립됩니다."></textarea>
+      </div>
+      <div class="field-hint">모든 부스에 도장을 다 찍으면 이 문구가 팝업과 완료 배너에 표시됩니다.</div>
+    </div>
+    <button class="btn-primary" id="adminSaveBtn">저장하기</button>
+    <div class="save-msg" id="adminSaveMsg"></div>
+    <div class="divider"></div>
+    <button class="btn-secondary" id="adminExitBtn">관리자 모드 종료</button>
+  </div>
+
+  <!-- 도장판 현황 화면 -->
+  <div id="adminStatusScreen" class="card hidden">
+    <div class="top-bar">
+      <button class="icon-btn" id="statusBackBtn">← 뒤로</button>
+      <button class="icon-btn" id="statusExitBtn">닫기</button>
+    </div>
+    <h1>도장판 현황</h1>
+    <div class="subtitle" id="statusBreadcrumb">전체</div>
+    <div id="statusContent"></div>
+    <div class="divider"></div>
+    <button class="btn-danger" id="deleteAllStatusBtn">지금까지 도장판 현황 삭제하기</button>
+  </div>
+
+</div>
+
+<!-- 완료 팝업 -->
+<div id="completePopup" class="popup-overlay hidden">
+  <div class="popup-card">
+    <div class="popup-emoji">🎉</div>
+    <div class="popup-message" id="popupMessage"></div>
+    <button class="btn-primary" id="popupCloseBtn">확인</button>
+    <button class="btn-switch" id="popupSwitchUserBtn">다음 학생으로 넘어가기</button>
+  </div>
+</div>
+
+<!-- 저장 토스트 -->
+<div id="saveToast" class="save-toast hidden">저장되었습니다</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var CONFIG_KEY = "boothStamp_config";
+  var RECORDS_KEY = "boothStamp_records";
+  var SESSION_KEY = "boothStamp_currentUser";
+  var ADMIN_PASSWORD = "1234";
+
+  var DEFAULT_COMPLETION_MSG = "모든 부스 도장을 다 모았어요! 동여머니 2개가 적립됩니다.";
+
+  function defaultBoothName(idx){
+    return "부스 " + (idx + 1);
+  }
+
+  function normalizeConfig(c){
+    var boothCount = (c && typeof c.boothCount === "number" && c.boothCount > 0) ? c.boothCount : 8;
+    var boothNames = (c && Array.isArray(c.boothNames)) ? c.boothNames.slice() : [];
+    while(boothNames.length < boothCount) boothNames.push(defaultBoothName(boothNames.length));
+    boothNames = boothNames.slice(0, boothCount);
+    boothNames = boothNames.map(function(name, idx){
+      return (typeof name === "string" && name.trim()) ? name.trim() : defaultBoothName(idx);
+    });
+    return {
+      title: (c && typeof c.title === "string" && c.title.trim()) ? c.title : "부스 도장판",
+      boothCount: boothCount,
+      boothNames: boothNames,
+      completionMessage: (c && typeof c.completionMessage === "string" && c.completionMessage.trim()) ? c.completionMessage : DEFAULT_COMPLETION_MSG
+    };
+  }
+
+  function loadConfig(){
+    var raw = localStorage.getItem(CONFIG_KEY);
+    if(raw){
+      try{
+        var c = JSON.parse(raw);
+        if(c && typeof c === "object"){
+          return normalizeConfig(c);
+        }
+      }catch(e){}
+    }
+    return normalizeConfig(null);
+  }
+  function saveConfig(c){
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(c));
+  }
+  function loadRecords(){
+    var raw = localStorage.getItem(RECORDS_KEY);
+    if(raw){
+      try{ return JSON.parse(raw) || {}; }catch(e){}
+    }
+    return {};
+  }
+  function saveRecords(r){
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(r));
+  }
+
+  var config = loadConfig();
+  var records = loadRecords();
+  var currentUserKey = null;
+
+  function makeKey(grade, cls, number){
+    return grade + "-" + cls + "-" + number;
+  }
+
+  function ensureRecord(key, grade, cls, number){
+    var rec = records[key];
+    if(!rec){
+      rec = { grade: grade, cls: cls, number: number, stamps: [] };
+      records[key] = rec;
+    }
+    var arr = rec.stamps || [];
+    var n = config.boothCount;
+    if(arr.length < n){
+      while(arr.length < n) arr.push(false);
+    } else if(arr.length > n){
+      arr = arr.slice(0, n);
+    }
+    rec.stamps = arr;
+    return rec;
+  }
+
+  // ---- 화면 전환 ----
+  var screens = {
+    login: document.getElementById("loginScreen"),
+    board: document.getElementById("boardScreen"),
+    adminAuth: document.getElementById("adminAuthScreen"),
+    admin: document.getElementById("adminScreen"),
+    adminStatus: document.getElementById("adminStatusScreen")
+  };
+  function showScreen(name){
+    Object.keys(screens).forEach(function(k){
+      screens[k].classList.toggle("hidden", k !== name);
+    });
+  }
+
+  function applyTitles(){
+    document.getElementById("pageTitle").textContent = config.title;
+    document.getElementById("loginTitle").textContent = config.title;
+    document.getElementById("boardTitle").textContent = config.title;
+  }
+
+  // ---- 로그인 ----
+  var inGrade = document.getElementById("inGrade");
+  var inClass = document.getElementById("inClass");
+  var inNumber = document.getElementById("inNumber");
+  var loginError = document.getElementById("loginError");
+
+  document.getElementById("loginBtn").addEventListener("click", function(){
+    var g = parseInt(inGrade.value, 10);
+    var c = parseInt(inClass.value, 10);
+    var n = parseInt(inNumber.value, 10);
+    if(!g || !c || !n || g < 1 || c < 1 || n < 1){
+      loginError.textContent = "학년, 반, 번호를 모두 올바르게 입력해주세요.";
+      return;
+    }
+    loginError.textContent = "";
+    var key = makeKey(g, c, n);
+    ensureRecord(key, g, c, n);
+    saveRecords(records);
+    currentUserKey = key;
+    sessionStorage.setItem(SESSION_KEY, key);
+    renderBoard();
+    showScreen("board");
+  });
+
+  function switchToNextStudent(){
+    currentUserKey = null;
+    sessionStorage.removeItem(SESSION_KEY);
+    inGrade.value = ""; inClass.value = ""; inNumber.value = "";
+    completePopup.classList.add("hidden");
+    showScreen("login");
+  }
+  document.getElementById("switchUserBtn").addEventListener("click", switchToNextStudent);
+  document.getElementById("switchUserBtnBig").addEventListener("click", switchToNextStudent);
+  document.getElementById("popupSwitchUserBtn").addEventListener("click", switchToNextStudent);
+
+  // ---- 도장판 ----
+  var userChip = document.getElementById("userChip");
+  var stampGrid = document.getElementById("stampGrid");
+  var progressText = document.getElementById("progressText");
+  var progressFill = document.getElementById("progressFill");
+  var completeBanner = document.getElementById("completeBanner");
+  var completePopup = document.getElementById("completePopup");
+  var popupMessage = document.getElementById("popupMessage");
+
+  function isAllStamped(rec){
+    return rec.stamps.length > 0 && rec.stamps.every(Boolean);
+  }
+
+  function showCompletionPopup(){
+    popupMessage.textContent = config.completionMessage;
+    completePopup.classList.remove("hidden");
+  }
+  document.getElementById("popupCloseBtn").addEventListener("click", function(){
+    completePopup.classList.add("hidden");
+  });
+
+  var saveToast = document.getElementById("saveToast");
+  var saveToastTimer = null;
+  function showSaveToast(text){
+    saveToast.textContent = text;
+    saveToast.classList.remove("hidden");
+    if(saveToastTimer) clearTimeout(saveToastTimer);
+    saveToastTimer = setTimeout(function(){
+      saveToast.classList.add("hidden");
+    }, 1400);
+  }
+
+  function renderBoard(){
+    applyTitles();
+    var rec = records[currentUserKey];
+    if(!rec) return;
+    userChip.textContent = rec.grade + "학년 " + rec.cls + "반 " + rec.number + "번";
+
+    stampGrid.innerHTML = "";
+    rec.stamps.forEach(function(stamped, idx){
+      var slot = document.createElement("div");
+      slot.className = "stamp-slot" + (stamped ? " stamped" : "");
+      var numEl = document.createElement("div");
+      numEl.className = "num";
+      numEl.textContent = config.boothNames[idx] || defaultBoothName(idx);
+      slot.appendChild(numEl);
+
+      if(stamped){
+        var mark = document.createElement("div");
+        mark.className = "stamp-mark";
+        var ring = document.createElement("div");
+        ring.className = "ring";
+        ring.textContent = "참여\n완료";
+        ring.style.whiteSpace = "pre-line";
+        mark.appendChild(ring);
+        slot.appendChild(mark);
+      } else {
+        var hint = document.createElement("div");
+        hint.textContent = "탭하여\n도장 찍기";
+        hint.style.whiteSpace = "pre-line";
+        hint.style.fontSize = "11px";
+        slot.appendChild(hint);
+      }
+
+      slot.addEventListener("click", function(){
+        var wasComplete = isAllStamped(rec);
+        rec.stamps[idx] = !rec.stamps[idx];
+        var nowStamped = rec.stamps[idx];
+        saveRecords(records);
+        var nowComplete = isAllStamped(rec);
+        renderBoard();
+        if(!wasComplete && nowComplete){
+          showCompletionPopup();
+        } else if(nowStamped){
+          showSaveToast("도장 저장 완료!");
+        }
+      });
+
+      stampGrid.appendChild(slot);
+    });
+
+    var total = rec.stamps.length;
+    var got = rec.stamps.filter(Boolean).length;
+    progressText.textContent = got + " / " + total;
+    progressFill.style.width = (total ? (got / total * 100) : 0) + "%";
+    completeBanner.textContent = "🎉 " + config.completionMessage;
+    completeBanner.classList.toggle("hidden", !(total > 0 && got === total));
+  }
+
+  // ---- 관리자 ----
+  var adminPw = document.getElementById("adminPw");
+  var adminAuthError = document.getElementById("adminAuthError");
+
+  var pendingAdminTarget = "admin";
+  var adminAuthTitle = document.getElementById("adminAuthTitle");
+
+  function openAdminAuth(target){
+    pendingAdminTarget = target;
+    adminAuthTitle.textContent = target === "adminStatus" ? "도장판 현황 로그인" : "관리자 로그인";
+    adminPw.value = "";
+    adminAuthError.textContent = "";
+    showScreen("adminAuth");
+  }
+  document.getElementById("openAdminFromLogin").addEventListener("click", function(){ openAdminAuth("admin"); });
+  document.getElementById("openAdminFromBoard").addEventListener("click", function(){ openAdminAuth("admin"); });
+  document.getElementById("openStatusFromLogin").addEventListener("click", function(){ openAdminAuth("adminStatus"); });
+  document.getElementById("openStatusFromBoard").addEventListener("click", function(){ openAdminAuth("adminStatus"); });
+
+  document.getElementById("backFromAdminAuth").addEventListener("click", function(){
+    showScreen(currentUserKey ? "board" : "login");
+  });
+
+  document.getElementById("adminLoginBtn").addEventListener("click", function(){
+    if(adminPw.value === ADMIN_PASSWORD){
+      if(pendingAdminTarget === "adminStatus"){
+        openAdminStatusScreen();
+      } else {
+        openAdminScreen();
+      }
+    } else {
+      adminAuthError.textContent = "비밀번호가 올바르지 않습니다.";
+    }
+  });
+  adminPw.addEventListener("keydown", function(e){
+    if(e.key === "Enter") document.getElementById("adminLoginBtn").click();
+  });
+
+  var adminTitleInput = document.getElementById("adminTitleInput");
+  var adminBoothCount = document.getElementById("adminBoothCount");
+  var adminCompletionMsg = document.getElementById("adminCompletionMsg");
+  var adminBoothNamesContainer = document.getElementById("adminBoothNames");
+  var adminSaveMsg = document.getElementById("adminSaveMsg");
+  var adminWorkingNames = [];
+
+  function renderAdminBoothNameRows(count){
+    count = Math.max(0, Math.min(200, count || 0));
+    while(adminWorkingNames.length < count){
+      adminWorkingNames.push(defaultBoothName(adminWorkingNames.length));
+    }
+    adminWorkingNames.length = count;
+
+    adminBoothNamesContainer.innerHTML = "";
+    adminWorkingNames.forEach(function(name, idx){
+      var row = document.createElement("div");
+      row.className = "admin-name-row";
+
+      var idxLabel = document.createElement("div");
+      idxLabel.className = "idx";
+      idxLabel.textContent = "부스 " + (idx + 1);
+      row.appendChild(idxLabel);
+
+      var nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.maxLength = 20;
+      nameInput.value = name;
+      nameInput.placeholder = defaultBoothName(idx);
+      nameInput.addEventListener("input", function(){
+        adminWorkingNames[idx] = nameInput.value;
+      });
+      row.appendChild(nameInput);
+
+      adminBoothNamesContainer.appendChild(row);
+    });
+  }
+
+  adminBoothCount.addEventListener("input", function(){
+    var count = parseInt(adminBoothCount.value, 10);
+    renderAdminBoothNameRows(count || 0);
+  });
+
+  function openAdminScreen(){
+    adminTitleInput.value = config.title;
+    adminBoothCount.value = config.boothCount;
+    adminCompletionMsg.value = config.completionMessage;
+    adminWorkingNames = config.boothNames.slice();
+    renderAdminBoothNameRows(config.boothCount);
+    adminSaveMsg.textContent = "";
+    showScreen("admin");
+  }
+
+  document.getElementById("adminSaveBtn").addEventListener("click", function(){
+    var title = adminTitleInput.value.trim();
+    var count = parseInt(adminBoothCount.value, 10);
+    var completionMessage = adminCompletionMsg.value.trim();
+    if(!title){
+      adminSaveMsg.style.color = "#d92d20";
+      adminSaveMsg.textContent = "도장판 이름을 입력해주세요.";
+      return;
+    }
+    if(!count || count < 1 || count > 60){
+      adminSaveMsg.style.color = "#d92d20";
+      adminSaveMsg.textContent = "부스 개수는 1~60 사이로 입력해주세요.";
+      return;
+    }
+    if(!completionMessage){
+      adminSaveMsg.style.color = "#d92d20";
+      adminSaveMsg.textContent = "완료 팝업 문구를 입력해주세요.";
+      return;
+    }
+    renderAdminBoothNameRows(count);
+
+    config = normalizeConfig({
+      title: title,
+      boothCount: count,
+      boothNames: adminWorkingNames,
+      completionMessage: completionMessage
+    });
+    saveConfig(config);
+
+    Object.keys(records).forEach(function(k){
+      var rec = records[k];
+      var arr = rec.stamps || [];
+      if(arr.length < count){
+        while(arr.length < count) arr.push(false);
+      } else if(arr.length > count){
+        arr = arr.slice(0, count);
+      }
+      rec.stamps = arr;
+    });
+    saveRecords(records);
+
+    adminTitleInput.value = config.title;
+    adminBoothCount.value = config.boothCount;
+    adminCompletionMsg.value = config.completionMessage;
+    adminWorkingNames = config.boothNames.slice();
+    renderAdminBoothNameRows(config.boothCount);
+
+    adminSaveMsg.style.color = "#2f9e44";
+    adminSaveMsg.textContent = "저장되었습니다.";
+    applyTitles();
+  });
+
+  document.getElementById("adminExitBtn").addEventListener("click", function(){
+    if(currentUserKey){
+      renderBoard();
+      showScreen("board");
+    } else {
+      showScreen("login");
+    }
+  });
+
+  // ---- 도장판 현황 ----
+  var statusBreadcrumb = document.getElementById("statusBreadcrumb");
+  var statusContent = document.getElementById("statusContent");
+  var statusBackBtn = document.getElementById("statusBackBtn");
+  var statusGrade = null;
+  var statusClass = null;
+
+  function getGradesSorted(){
+    var set = {};
+    Object.keys(records).forEach(function(k){ set[records[k].grade] = true; });
+    return Object.keys(set).map(Number).sort(function(a,b){ return a - b; });
+  }
+  function getClassesForGrade(grade){
+    var set = {};
+    Object.keys(records).forEach(function(k){
+      var r = records[k];
+      if(r.grade === grade) set[r.cls] = true;
+    });
+    return Object.keys(set).map(Number).sort(function(a,b){ return a - b; });
+  }
+  function getStudentsForGradeClass(grade, cls){
+    var list = [];
+    Object.keys(records).forEach(function(k){
+      var r = records[k];
+      if(r.grade === grade && r.cls === cls) list.push(r);
+    });
+    list.sort(function(a,b){ return a.number - b.number; });
+    return list;
+  }
+  function countStudents(filterFn){
+    return Object.keys(records).filter(function(k){ return filterFn(records[k]); }).length;
+  }
+  function makeStatusRow(title, meta, complete, onClick){
+    var row = document.createElement("div");
+    row.className = "status-row" + (onClick ? " clickable" : "") + (complete ? " complete" : "");
+    var left = document.createElement("div");
+    left.textContent = title;
+    var right = document.createElement("div");
+    right.className = "meta";
+    right.textContent = meta;
+    row.appendChild(left);
+    row.appendChild(right);
+    if(onClick) row.addEventListener("click", onClick);
+    return row;
+  }
+  function makeEmptyMsg(text){
+    var d = document.createElement("div");
+    d.className = "status-empty";
+    d.textContent = text;
+    return d;
+  }
+
+  function renderStatus(){
+    var crumbs = ["전체"];
+    if(statusGrade !== null) crumbs.push(statusGrade + "학년");
+    if(statusClass !== null) crumbs.push(statusClass + "반");
+    statusBreadcrumb.textContent = crumbs.join(" > ");
+
+    statusContent.innerHTML = "";
+    var list = document.createElement("div");
+    list.className = "status-list";
+
+    if(statusGrade === null){
+      var grades = getGradesSorted();
+      if(grades.length === 0){
+        statusContent.appendChild(makeEmptyMsg("아직 참여한 학생이 없습니다."));
+        return;
+      }
+      grades.forEach(function(g){
+        var count = countStudents(function(r){ return r.grade === g; });
+        list.appendChild(makeStatusRow(g + "학년", count + "명", false, function(){
+          statusGrade = g;
+          renderStatus();
+        }));
+      });
+    } else if(statusClass === null){
+      var classes = getClassesForGrade(statusGrade);
+      if(classes.length === 0){
+        statusContent.appendChild(makeEmptyMsg("해당 학년에 학생이 없습니다."));
+        return;
+      }
+      classes.forEach(function(c){
+        var count = countStudents(function(r){ return r.grade === statusGrade && r.cls === c; });
+        list.appendChild(makeStatusRow(c + "반", count + "명", false, function(){
+          statusClass = c;
+          renderStatus();
+        }));
+      });
+    } else {
+      var students = getStudentsForGradeClass(statusGrade, statusClass);
+      if(students.length === 0){
+        statusContent.appendChild(makeEmptyMsg("해당 반에 학생이 없습니다."));
+        return;
+      }
+      students.forEach(function(rec){
+        var total = rec.stamps.length;
+        var got = rec.stamps.filter(Boolean).length;
+        var complete = total > 0 && got === total;
+        list.appendChild(makeStatusRow(rec.number + "번", got + " / " + total + (complete ? " 완료" : ""), complete, null));
+      });
+    }
+
+    statusContent.appendChild(list);
+  }
+
+  function openAdminStatusScreen(){
+    statusGrade = null;
+    statusClass = null;
+    renderStatus();
+    showScreen("adminStatus");
+  }
+
+  function exitStatusScreen(){
+    showScreen(currentUserKey ? "board" : "login");
+  }
+
+  statusBackBtn.addEventListener("click", function(){
+    if(statusClass !== null){
+      statusClass = null;
+      renderStatus();
+    } else if(statusGrade !== null){
+      statusGrade = null;
+      renderStatus();
+    } else {
+      exitStatusScreen();
+    }
+  });
+
+  document.getElementById("statusExitBtn").addEventListener("click", exitStatusScreen);
+
+  document.getElementById("deleteAllStatusBtn").addEventListener("click", function(){
+    var studentCount = Object.keys(records).length;
+    if(studentCount === 0){
+      window.alert("삭제할 기록이 없습니다.");
+      return;
+    }
+    var ok = window.confirm(
+      "지금까지 모은 모든 학생의 도장판 기록(" + studentCount + "명)을 삭제할까요?\n" +
+      "이 작업은 되돌릴 수 없습니다."
+    );
+    if(!ok) return;
+
+    records = {};
+    saveRecords(records);
+    if(currentUserKey){
+      currentUserKey = null;
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+    statusGrade = null;
+    statusClass = null;
+    renderStatus();
+    showSaveToast("모든 기록이 삭제되었습니다");
+  });
+
+  // ---- 초기화 ----
+  applyTitles();
+  var savedUser = sessionStorage.getItem(SESSION_KEY);
+  if(savedUser && records[savedUser]){
+    currentUserKey = savedUser;
+    ensureRecord(currentUserKey, records[currentUserKey].grade, records[currentUserKey].cls, records[currentUserKey].number);
+    renderBoard();
+    showScreen("board");
+  } else {
+    showScreen("login");
+  }
+})();
+</script>
+
+</body>
+</html>
