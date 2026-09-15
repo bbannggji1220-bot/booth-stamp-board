@@ -478,8 +478,14 @@
 
 <div class="screen">
 
+  <!-- 초기 로딩 화면 -->
+  <div id="loadingScreen" class="card">
+    <h1>부스 도장판</h1>
+    <div class="subtitle">불러오는 중...</div>
+  </div>
+
   <!-- 학생 로그인 화면 -->
-  <div id="loginScreen" class="card">
+  <div id="loginScreen" class="card hidden">
     <h1 id="loginTitle">부스 도장판</h1>
     <div class="subtitle">학년, 반, 번호를 입력하고 도장판을 시작하세요</div>
     <div class="field-row">
@@ -605,10 +611,9 @@
 (function(){
   "use strict";
 
-  var CONFIG_KEY = "boothStamp_config";
-  var RECORDS_KEY = "boothStamp_records";
   var SESSION_KEY = "boothStamp_currentUser";
   var ADMIN_PASSWORD = "1234";
+  var RTDB_URL = "https://booth-stamp-board-default-rtdb.firebaseio.com";
 
   var DEFAULT_COMPLETION_MSG = "모든 부스 도장을 다 모았어요! 동여머니 2개가 적립됩니다.";
 
@@ -632,34 +637,19 @@
     };
   }
 
-  function loadConfig(){
-    var raw = localStorage.getItem(CONFIG_KEY);
-    if(raw){
-      try{
-        var c = JSON.parse(raw);
-        if(c && typeof c === "object"){
-          return normalizeConfig(c);
-        }
-      }catch(e){}
-    }
-    return normalizeConfig(null);
-  }
-  function saveConfig(c){
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(c));
-  }
-  function loadRecords(){
-    var raw = localStorage.getItem(RECORDS_KEY);
-    if(raw){
-      try{ return JSON.parse(raw) || {}; }catch(e){}
-    }
-    return {};
-  }
-  function saveRecords(r){
-    localStorage.setItem(RECORDS_KEY, JSON.stringify(r));
+  function rtdbPut(path, data){
+    return fetch(RTDB_URL + path + ".json", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data === undefined ? null : data)
+    }).catch(function(err){
+      console.error("Firebase 저장 실패", err);
+      showSaveToast("저장 실패! 인터넷 연결을 확인해주세요");
+    });
   }
 
-  var config = loadConfig();
-  var records = loadRecords();
+  var config = normalizeConfig(null);
+  var records = {};
   var currentUserKey = null;
 
   function makeKey(grade, cls, number){
@@ -685,6 +675,7 @@
 
   // ---- 화면 전환 ----
   var screens = {
+    loading: document.getElementById("loadingScreen"),
     login: document.getElementById("loginScreen"),
     board: document.getElementById("boardScreen"),
     adminAuth: document.getElementById("adminAuthScreen"),
@@ -719,8 +710,8 @@
     }
     loginError.textContent = "";
     var key = makeKey(g, c, n);
-    ensureRecord(key, g, c, n);
-    saveRecords(records);
+    var rec = ensureRecord(key, g, c, n);
+    rtdbPut("/records/" + key, rec);
     currentUserKey = key;
     sessionStorage.setItem(SESSION_KEY, key);
     renderBoard();
@@ -806,7 +797,7 @@
         var wasComplete = isAllStamped(rec);
         rec.stamps[idx] = !rec.stamps[idx];
         var nowStamped = rec.stamps[idx];
-        saveRecords(records);
+        rtdbPut("/records/" + currentUserKey, rec);
         var nowComplete = isAllStamped(rec);
         renderBoard();
         if(!wasComplete && nowComplete){
@@ -945,19 +936,22 @@
       boothNames: adminWorkingNames,
       completionMessage: completionMessage
     });
-    saveConfig(config);
+    rtdbPut("/config", config);
 
     Object.keys(records).forEach(function(k){
       var rec = records[k];
       var arr = rec.stamps || [];
+      var changed = false;
       if(arr.length < count){
         while(arr.length < count) arr.push(false);
+        changed = true;
       } else if(arr.length > count){
         arr = arr.slice(0, count);
+        changed = true;
       }
       rec.stamps = arr;
+      if(changed) rtdbPut("/records/" + k, rec);
     });
-    saveRecords(records);
 
     adminTitleInput.value = config.title;
     adminBoothCount.value = config.boothCount;
@@ -1122,7 +1116,7 @@
     if(!ok) return;
 
     records = {};
-    saveRecords(records);
+    rtdbPut("/records", null);
     if(currentUserKey){
       currentUserKey = null;
       sessionStorage.removeItem(SESSION_KEY);
@@ -1133,16 +1127,90 @@
     showSaveToast("모든 기록이 삭제되었습니다");
   });
 
+  // ---- Firebase 실시간 동기화 ----
+  var configSynced = false;
+  var recordsSynced = false;
+  var firstSyncDone = false;
+
+  function applyConfigEvent(path, data){
+    if(path === "/" || path === ""){
+      config = normalizeConfig(data);
+    } else {
+      var field = path.replace(/^\//, "").split("/")[0];
+      var patch = {};
+      patch[field] = data;
+      config = normalizeConfig(Object.assign({}, config, patch));
+    }
+    if(firstSyncDone){
+      applyTitles();
+      if(!screens.board.classList.contains("hidden")) renderBoard();
+    }
+  }
+
+  function applyRecordsEvent(path, data){
+    if(path === "/" || path === ""){
+      records = data || {};
+    } else {
+      var key = path.replace(/^\//, "").split("/")[0];
+      if(data === null){
+        delete records[key];
+      } else {
+        records[key] = data;
+      }
+    }
+    if(firstSyncDone){
+      if(!screens.board.classList.contains("hidden") && currentUserKey && records[currentUserKey]){
+        renderBoard();
+      }
+      if(!screens.adminStatus.classList.contains("hidden")){
+        renderStatus();
+      }
+    }
+  }
+
+  function checkFirstSync(){
+    if(configSynced && recordsSynced && !firstSyncDone){
+      firstSyncDone = true;
+      startApp();
+    }
+  }
+
+  var configStream = new EventSource(RTDB_URL + "/config.json");
+  configStream.addEventListener("put", function(e){
+    var payload = JSON.parse(e.data);
+    applyConfigEvent(payload.path, payload.data);
+    configSynced = true;
+    checkFirstSync();
+  });
+  configStream.addEventListener("patch", function(e){
+    var payload = JSON.parse(e.data);
+    applyConfigEvent(payload.path, payload.data);
+  });
+
+  var recordsStream = new EventSource(RTDB_URL + "/records.json");
+  recordsStream.addEventListener("put", function(e){
+    var payload = JSON.parse(e.data);
+    applyRecordsEvent(payload.path, payload.data);
+    recordsSynced = true;
+    checkFirstSync();
+  });
+  recordsStream.addEventListener("patch", function(e){
+    var payload = JSON.parse(e.data);
+    applyRecordsEvent(payload.path, payload.data);
+  });
+
   // ---- 초기화 ----
-  applyTitles();
-  var savedUser = sessionStorage.getItem(SESSION_KEY);
-  if(savedUser && records[savedUser]){
-    currentUserKey = savedUser;
-    ensureRecord(currentUserKey, records[currentUserKey].grade, records[currentUserKey].cls, records[currentUserKey].number);
-    renderBoard();
-    showScreen("board");
-  } else {
-    showScreen("login");
+  function startApp(){
+    applyTitles();
+    var savedUser = sessionStorage.getItem(SESSION_KEY);
+    if(savedUser && records[savedUser]){
+      currentUserKey = savedUser;
+      ensureRecord(currentUserKey, records[currentUserKey].grade, records[currentUserKey].cls, records[currentUserKey].number);
+      renderBoard();
+      showScreen("board");
+    } else {
+      showScreen("login");
+    }
   }
 })();
 </script>
