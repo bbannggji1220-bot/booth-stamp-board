@@ -470,6 +470,7 @@
     border:2px solid var(--stamp-red);
     transition:background .15s, transform .1s;
   }
+  .btn-export{margin-top:0;margin-bottom:10px;padding:13px;font-size:14px;}
   .btn-danger:hover{background:#fff0ee;}
   .btn-danger:active{transform:scale(0.98);}
 </style>
@@ -589,6 +590,7 @@
     <div class="subtitle" id="statusBreadcrumb">전체</div>
     <div id="statusContent"></div>
     <div class="divider"></div>
+    <button class="btn-switch btn-export" id="exportExcelBtn">엑셀로 내보내기</button>
     <button class="btn-danger" id="deleteAllStatusBtn">지금까지 도장판 현황 삭제하기</button>
   </div>
 
@@ -607,6 +609,7 @@
 <!-- 저장 토스트 -->
 <div id="saveToast" class="save-toast hidden">저장되었습니다</div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -1102,6 +1105,45 @@
   });
 
   document.getElementById("statusExitBtn").addEventListener("click", exitStatusScreen);
+
+  document.getElementById("exportExcelBtn").addEventListener("click", function(){
+    var keys = Object.keys(records);
+    if(keys.length === 0){
+      window.alert("내보낼 기록이 없습니다.");
+      return;
+    }
+    if(typeof XLSX === "undefined"){
+      window.alert("엑셀 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침 해주세요.");
+      return;
+    }
+
+    var list = keys.map(function(k){ return records[k]; });
+    list.sort(function(a, b){ return (a.grade - b.grade) || (a.cls - b.cls) || (a.number - b.number); });
+
+    var total = config.boothCount;
+    var rows = [["학년", "반", "번호", "모은 도장", "전체 부스", "완료 여부"].concat(config.boothNames)];
+    list.forEach(function(rec){
+      var stamps = rec.stamps || [];
+      var got = 0;
+      var marks = [];
+      for(var i = 0; i < total; i++){
+        if(stamps[i]){ got++; marks.push("O"); } else { marks.push(""); }
+      }
+      rows.push([rec.grade, rec.cls, rec.number, got, total, got === total ? "완료" : "미완료"].concat(marks));
+    });
+
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = rows[0].map(function(_, idx){ return { wch: idx < 6 ? 10 : 14 }; });
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "도장판 현황");
+
+    var d = new Date();
+    var pad = function(n){ return (n < 10 ? "0" : "") + n; };
+    var dateStr = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+    var safeTitle = config.title.replace(/[\\/:*?"<>|]/g, "").trim() || "도장판";
+    XLSX.writeFile(wb, safeTitle + "_현황_" + dateStr + ".xlsx");
+    showSaveToast("엑셀 파일을 내보냈어요");
+  });
 
   document.getElementById("deleteAllStatusBtn").addEventListener("click", function(){
     var studentCount = Object.keys(records).length;
